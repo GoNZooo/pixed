@@ -6,6 +6,19 @@ const c = @import("./c.zig");
 const ApplicationState = struct {
     tick: u64,
     running: bool,
+    file_data: FileData,
+};
+
+const FileData = struct {
+    name: []const u8,
+    pixels: []Pixel,
+};
+
+const Pixel = struct {
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
 };
 
 pub fn main() anyerror!void {
