@@ -32,6 +32,7 @@ pub fn main() anyerror!void {
     var application = ApplicationState{
         .tick = 0,
         .running = true,
+        .file_data = FileData{ .name = "test", .pixels = &[_]Pixel{}, .zoom_factor = 1.0 },
     };
 
     if (c.SDL_Init(c.SDL_INIT_VIDEO) < 0) {
