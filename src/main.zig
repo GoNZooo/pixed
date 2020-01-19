@@ -83,9 +83,33 @@ pub fn main() anyerror!void {
         .running = true,
         .file_data = FileData{
             .name = "test",
-            .width = 2,
-            .height = 2,
+            .width = 3,
+            .height = 3,
             .pixels = &[_]Pixel{
+                Pixel{
+                    .r = 0xff,
+                    .g = 0x00,
+                    .b = 0x00,
+                    .a = 0xff,
+                },
+                Pixel{
+                    .r = 0x00,
+                    .g = 0xff,
+                    .b = 0x00,
+                    .a = 0xff,
+                },
+                Pixel{
+                    .r = 0x00,
+                    .g = 0x00,
+                    .b = 0xff,
+                    .a = 0xff,
+                },
+                Pixel{
+                    .r = 0xff,
+                    .g = 0xff,
+                    .b = 0xff,
+                    .a = 0xff,
+                },
                 Pixel{
                     .r = 0x00,
                     .g = 0x00,
@@ -93,19 +117,25 @@ pub fn main() anyerror!void {
                     .a = 0xff,
                 },
                 Pixel{
-                    .r = 0xff,
-                    .g = 0xff,
-                    .b = 0xff,
+                    .r = 0xa0,
+                    .g = 0xa0,
+                    .b = 0xa0,
                     .a = 0xff,
                 },
                 Pixel{
-                    .r = 0xff,
-                    .g = 0xff,
+                    .r = 0x00,
+                    .g = 0x00,
                     .b = 0xff,
                     .a = 0xff,
                 },
                 Pixel{
                     .r = 0x00,
+                    .g = 0xff,
+                    .b = 0x00,
+                    .a = 0xff,
+                },
+                Pixel{
+                    .r = 0xff,
                     .g = 0x00,
                     .b = 0x00,
                     .a = 0xff,
