@@ -12,6 +12,10 @@ const ApplicationState = struct {
 const FileData = struct {
     name: []const u8,
     pixels: []Pixel,
+    // this is meant to be a modifier for how big we need to draw pixels, as the user zooms in/out
+    zoom_factor: f32,
+
+    // @TODO: add `saveToFile`
 };
 
 const Pixel = struct {
