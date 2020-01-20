@@ -7,6 +7,19 @@ const ApplicationState = struct {
     tick: u64,
     running: bool,
     file_data: FileData,
+
+    pub fn handleEvent(self: *ApplicationState, event: c.SDL_Event) void {
+        switch (event.type) {
+            c.SDL_MOUSEWHEEL => {
+                if (event.wheel.y > 0) {
+                    self.file_data.zoom_factor += 1;
+                } else if (event.wheel.y < 0) {
+                    self.file_data.zoom_factor -= 1;
+                }
+            },
+            else => {},
+        }
+    }
 };
 
 const FileData = struct {
@@ -15,7 +28,7 @@ const FileData = struct {
     height: u32,
     pixels: []Pixel,
     // this is meant to be a modifier for how big we need to draw pixels, as the user zooms in/out
-    zoom_factor: f32,
+    zoom_factor: u32,
     surface: *c.SDL_Surface,
 
     pub fn draw(self: FileData) void {
@@ -24,8 +37,8 @@ const FileData = struct {
             var x: u32 = 0;
             while (x < self.width) : (x += 1) {
                 const pixel_index = (y * self.width) + x;
-                const pixel_width = application_width / self.width;
-                const pixel_height = application_height / self.height;
+                const pixel_width = self.zoom_factor;
+                const pixel_height = self.zoom_factor;
                 const pixel_rect = c.SDL_Rect{
                     .x = @intCast(c_int, x * pixel_width),
                     .y = @intCast(c_int, y * pixel_height),
@@ -63,7 +76,7 @@ pub fn main() anyerror!void {
         c.exit(1);
     } else {
         window = c.SDL_CreateWindow(
-            "PixEd",
+            "pixed",
             c.SDL_WINDOWPOS_UNDEFINED,
             c.SDL_WINDOWPOS_UNDEFINED,
             application_width,
@@ -141,14 +154,17 @@ pub fn main() anyerror!void {
                     .a = 0xff,
                 },
             },
-            .zoom_factor = 1.0,
+            .zoom_factor = 10,
             .surface = surface.?,
         },
     };
 
     var keyboard: [*]const u8 = undefined;
+    var event: c.SDL_Event = undefined;
     while (application.running) : (application.tick += 1) {
-        _ = c.SDL_PumpEvents();
+        if (c.SDL_PollEvent(&event) == 1) {
+            application.handleEvent(event);
+        }
         keyboard = c.SDL_GetKeyboardState(null);
         update(&application, keyboard);
         render(window.?, surface.?, application);
