@@ -1,5 +1,7 @@
 const std = @import("std");
 const debug = std.debug;
+const heap = std.heap;
+const fmt = std.fmt;
 
 const c = @import("./c.zig");
 
@@ -197,7 +199,7 @@ pub fn main() anyerror!void {
     var previous_ticks = @intToFloat(f64, c.SDL_GetTicks());
     var start_tick: u32 = 0;
     var end_tick: u32 = 0;
-    var title = try std.heap.page_allocator.alloc(u8, 256);
+    var title = try heap.page_allocator.alloc(u8, 256);
     while (application.running) : (application.tick += 1) {
         start_tick = c.SDL_GetTicks();
         if (c.SDL_PollEvent(&event) == 1) {
@@ -209,9 +211,9 @@ pub fn main() anyerror!void {
         update(&application, keyboard, mouse);
         render(renderer, application);
         end_tick = c.SDL_GetTicks();
-        _ = try std.fmt.bufPrint(
+        _ = try fmt.bufPrint(
             title,
-            "pixed | Loop time: {d:3.3} ms, Pixel: {}\x00",
+            "pixed | Loop time: {} ms, Pixel: {}\x00",
             .{ end_tick - start_tick, application.active_pixel },
         );
         c.SDL_SetWindowTitle(window, title.ptr);
