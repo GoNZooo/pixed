@@ -9,6 +9,7 @@ const ApplicationState = struct {
     file_data: FileData,
     // this is meant to be a modifier for how big we need to draw pixels, as the user zooms in/out
     zoom_factor: u32,
+    active_pixel: ?*Pixel = null,
     surface: *c.SDL_Surface,
     renderer: *c.SDL_Renderer,
 
@@ -27,6 +28,17 @@ const ApplicationState = struct {
             },
             else => {},
         }
+    }
+
+    pub fn setActivePixel(self: *ApplicationState, mouse: MouseState) void {
+        const x_range = @intCast(u32, mouse.x) / self.zoom_factor;
+        const y_range = @intCast(u32, mouse.y) / self.zoom_factor;
+        if (x_range >= self.file_data.width or y_range >= self.file_data.height) {
+            return;
+        }
+        const pixel_index = y_range * self.file_data.width + x_range;
+
+        self.active_pixel = &self.file_data.pixels[pixel_index];
     }
 
     pub fn getMousePixel(self: ApplicationState, mouse: MouseState) ?*Pixel {
@@ -192,14 +204,15 @@ pub fn main() anyerror!void {
             application.handleEvent(event);
         }
         keyboard = c.SDL_GetKeyboardState(null);
-        const bitmask = c.SDL_GetMouseState(&mouse_x, &mouse_y);
-        update(&application, keyboard, MouseState{ .x = mouse_x, .y = mouse_y, .bitmask = bitmask });
+        var mouse: MouseState = undefined;
+        mouse.bitmask = c.SDL_GetMouseState(&mouse.x, &mouse.y);
+        update(&application, keyboard, mouse);
         render(renderer, application);
         end_tick = c.SDL_GetTicks();
-        title = try std.fmt.bufPrint(
+        _ = try std.fmt.bufPrint(
             title,
-            "pixed | Loop time: {d:3.3} ms\x00",
-            .{end_tick - start_tick},
+            "pixed | Loop time: {d:3.3} ms, Pixel: {}\x00",
+            .{ end_tick - start_tick, application.active_pixel },
         );
         c.SDL_SetWindowTitle(window, title.ptr);
     }
@@ -214,11 +227,10 @@ fn update(application: *ApplicationState, keyboard: [*]const u8, mouse: MouseSta
     if (keyboard[c.SDL_SCANCODE_ESCAPE] == 1 or keyboard[c.SDL_SCANCODE_Q] == 1) {
         application.running = false;
     }
-    const pixel = application.getMousePixel(mouse);
+    application.setActivePixel(mouse);
 }
 
 fn render(renderer: *c.SDL_Renderer, application: ApplicationState) void {
-    // _ = c.SDL_FillRect(surface, null, c.SDL_MapRGB(surface.format, 0xff, 0xff, 0xff));
     _ = c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
     _ = c.SDL_RenderClear(renderer);
 
