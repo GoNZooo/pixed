@@ -14,12 +14,33 @@ const ApplicationState = struct {
                 if (event.wheel.y > 0) {
                     self.file_data.zoom_factor += 1;
                 } else if (event.wheel.y < 0) {
-                    self.file_data.zoom_factor -= 1;
+                    if (self.file_data.zoom_factor > 1) {
+                        self.file_data.zoom_factor -= 1;
+                    } else {
+                        self.file_data.zoom_factor = 1;
+                    }
                 }
             },
             else => {},
         }
     }
+
+    pub fn getMousePixel(self: ApplicationState, mouse: MouseState) ?*Pixel {
+        const x_range = @intCast(u32, mouse.x) / self.file_data.zoom_factor;
+        const y_range = @intCast(u32, mouse.y) / self.file_data.zoom_factor;
+        if (x_range >= self.file_data.width or y_range >= self.file_data.height) {
+            return null;
+        }
+        const pixel_index = y_range * self.file_data.width + x_range;
+
+        return &self.file_data.pixels[pixel_index];
+    }
+};
+
+const MouseState = struct {
+    x: c_int,
+    y: c_int,
+    bitmask: u32,
 };
 
 const FileData = struct {
@@ -161,12 +182,15 @@ pub fn main() anyerror!void {
 
     var keyboard: [*]const u8 = undefined;
     var event: c.SDL_Event = undefined;
+    var mouse_x: c_int = undefined;
+    var mouse_y: c_int = undefined;
     while (application.running) : (application.tick += 1) {
         if (c.SDL_PollEvent(&event) == 1) {
             application.handleEvent(event);
         }
         keyboard = c.SDL_GetKeyboardState(null);
-        update(&application, keyboard);
+        const bitmask = c.SDL_GetMouseState(&mouse_x, &mouse_y);
+        update(&application, keyboard, MouseState{ .x = mouse_x, .y = mouse_y, .bitmask = bitmask });
         render(window.?, surface.?, application);
         _ = c.SDL_Delay(10);
     }
@@ -175,12 +199,14 @@ pub fn main() anyerror!void {
     c.SDL_Quit();
 }
 
-fn update(application: *ApplicationState, keyboard: [*]const u8) void {
+fn update(application: *ApplicationState, keyboard: [*]const u8, mouse: MouseState) void {
     defer application.tick += 1;
 
     if (keyboard[c.SDL_SCANCODE_ESCAPE] == 1 or keyboard[c.SDL_SCANCODE_Q] == 1) {
         application.running = false;
     }
+    const pixel = application.getMousePixel(mouse);
+    debug.warn("pixel={}\n", .{pixel});
 }
 
 fn render(window: *c.SDL_Window, surface: *c.SDL_Surface, application: ApplicationState) void {
