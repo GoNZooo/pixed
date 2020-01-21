@@ -128,7 +128,7 @@ pub fn main() anyerror!void {
         c.SDL_RENDERER_ACCELERATED | c.SDL_RENDERER_PRESENTVSYNC,
     ) orelse return error.UnableToCreateRenderer;
 
-    var test_pixels = try heap.page_allocator.alloc(Pixel, 9);
+    var test_pixels = try heap.page_allocator.alloc(Pixel, 16);
     mem.copy(Pixel, test_pixels, &[_]Pixel{
         Pixel{
             .r = 0xff,
@@ -184,6 +184,48 @@ pub fn main() anyerror!void {
             .b = 0x00,
             .a = 0xff,
         },
+        Pixel{
+            .r = 0x00,
+            .g = 0x00,
+            .b = 0xff,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0x00,
+            .g = 0xff,
+            .b = 0x00,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0xff,
+            .g = 0x00,
+            .b = 0x00,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0x00,
+            .g = 0x00,
+            .b = 0xff,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0x00,
+            .g = 0xff,
+            .b = 0x00,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0xff,
+            .g = 0x00,
+            .b = 0x00,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0x00,
+            .g = 0x00,
+            .b = 0xff,
+            .a = 0xff,
+        },
     });
 
     var application = ApplicationState{
@@ -196,8 +238,8 @@ pub fn main() anyerror!void {
         .renderer = renderer,
         .file_data = FileData{
             .name = "test",
-            .width = 3,
-            .height = 3,
+            .width = 4,
+            .height = 4,
             .pixels = test_pixels,
         },
     };
