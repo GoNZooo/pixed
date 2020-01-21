@@ -239,8 +239,8 @@ fn update(application: *ApplicationState, keyboard: [*]const u8, mouse: MouseSta
     }
 
     if (mouse.left_down) {
-        if (application.active_pixel) |*active_pixel| {
-            application.active_pixel.?.* = application.active_color;
+        if (application.active_pixel) |active_pixel| {
+            active_pixel.* = application.active_color;
         }
     }
 }
