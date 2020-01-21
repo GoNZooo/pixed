@@ -13,7 +13,8 @@ const ApplicationState = struct {
     // this is meant to be a modifier for how big we need to draw pixels, as the user zooms in/out
     zoom_factor: u32,
     active_pixel: ?*Pixel = null,
-    active_color: Pixel,
+    primary_color: Pixel,
+    secondary_color: Pixel,
     surface: *c.SDL_Surface,
     renderer: *c.SDL_Renderer,
 
@@ -189,7 +190,8 @@ pub fn main() anyerror!void {
         .tick = 0,
         .running = true,
         .zoom_factor = 10,
-        .active_color = Pixel{ .r = 0xff, .g = 0xff, .b = 0xff, .a = 0xff },
+        .primary_color = Pixel{ .r = 0xff, .g = 0xff, .b = 0xff, .a = 0xff },
+        .secondary_color = Pixel{ .r = 0x00, .g = 0x00, .b = 0x00, .a = 0xff },
         .surface = surface,
         .renderer = renderer,
         .file_data = FileData{
@@ -240,7 +242,11 @@ fn update(application: *ApplicationState, keyboard: [*]const u8, mouse: MouseSta
 
     if (mouse.left_down) {
         if (application.active_pixel) |active_pixel| {
-            active_pixel.* = application.active_color;
+            active_pixel.* = application.primary_color;
+        }
+    } else if (mouse.right_down) {
+        if (application.active_pixel) |active_pixel| {
+            active_pixel.* = application.secondary_color;
         }
     }
 }
