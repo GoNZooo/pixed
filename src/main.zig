@@ -79,7 +79,9 @@ const ApplicationState = struct {
 const MouseState = struct {
     x: c_int,
     y: c_int,
-    bitmask: u32,
+    left_down: bool,
+    middle_down: bool,
+    right_down: bool,
 };
 
 const FileData = struct {
@@ -207,7 +209,10 @@ pub fn main() anyerror!void {
         }
         keyboard = c.SDL_GetKeyboardState(null);
         var mouse: MouseState = undefined;
-        mouse.bitmask = c.SDL_GetMouseState(&mouse.x, &mouse.y);
+        const mouse_bitmask = c.SDL_GetMouseState(&mouse.x, &mouse.y);
+        mouse.left_down = (mouse_bitmask & 0b1) == 1;
+        mouse.middle_down = ((mouse_bitmask & 0b10) >> 1) == 1;
+        mouse.right_down = ((mouse_bitmask & 0b100) >> 2) == 1;
         update(&application, keyboard, mouse);
         render(renderer, application);
         end_tick = c.SDL_GetTicks();
@@ -225,11 +230,11 @@ pub fn main() anyerror!void {
 
 fn update(application: *ApplicationState, keyboard: [*]const u8, mouse: MouseState) void {
     defer application.tick += 1;
+    application.setActivePixel(mouse);
 
     if (keyboard[c.SDL_SCANCODE_ESCAPE] == 1 or keyboard[c.SDL_SCANCODE_Q] == 1) {
         application.running = false;
     }
-    application.setActivePixel(mouse);
 }
 
 fn render(renderer: *c.SDL_Renderer, application: ApplicationState) void {
