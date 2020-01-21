@@ -208,11 +208,7 @@ pub fn main() anyerror!void {
             application.handleEvent(event);
         }
         keyboard = c.SDL_GetKeyboardState(null);
-        var mouse: MouseState = undefined;
-        const mouse_bitmask = c.SDL_GetMouseState(&mouse.x, &mouse.y);
-        mouse.left_down = (mouse_bitmask & 0b1) == 1;
-        mouse.middle_down = ((mouse_bitmask & 0b10) >> 1) == 1;
-        mouse.right_down = ((mouse_bitmask & 0b100) >> 2) == 1;
+        const mouse = getMouseState();
         update(&application, keyboard, mouse);
         render(renderer, application);
         end_tick = c.SDL_GetTicks();
@@ -244,6 +240,16 @@ fn render(renderer: *c.SDL_Renderer, application: ApplicationState) void {
     application.render();
 
     _ = c.SDL_RenderPresent(renderer);
+}
+
+fn getMouseState() MouseState {
+    var mouse: MouseState = undefined;
+    const mouse_bitmask = c.SDL_GetMouseState(&mouse.x, &mouse.y);
+    mouse.left_down = (mouse_bitmask & 0b1) == 1;
+    mouse.middle_down = ((mouse_bitmask & 0b10) >> 1) == 1;
+    mouse.right_down = ((mouse_bitmask & 0b100) >> 2) == 1;
+
+    return mouse;
 }
 
 const application_width: u32 = 1280;
