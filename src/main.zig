@@ -2,6 +2,7 @@ const std = @import("std");
 const debug = std.debug;
 const heap = std.heap;
 const fmt = std.fmt;
+const mem = std.mem;
 
 const c = @import("./c.zig");
 
@@ -12,6 +13,7 @@ const ApplicationState = struct {
     // this is meant to be a modifier for how big we need to draw pixels, as the user zooms in/out
     zoom_factor: u32,
     active_pixel: ?*Pixel = null,
+    active_color: Pixel,
     surface: *c.SDL_Surface,
     renderer: *c.SDL_Renderer,
 
@@ -125,72 +127,76 @@ pub fn main() anyerror!void {
         c.SDL_RENDERER_ACCELERATED | c.SDL_RENDERER_PRESENTVSYNC,
     ) orelse return error.UnableToCreateRenderer;
 
+    var test_pixels = try heap.page_allocator.alloc(Pixel, 9);
+    mem.copy(Pixel, test_pixels, &[_]Pixel{
+        Pixel{
+            .r = 0xff,
+            .g = 0x00,
+            .b = 0x00,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0x00,
+            .g = 0xff,
+            .b = 0x00,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0x00,
+            .g = 0x00,
+            .b = 0xff,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0xff,
+            .g = 0xff,
+            .b = 0xff,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0x00,
+            .g = 0x00,
+            .b = 0x00,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0xa0,
+            .g = 0xa0,
+            .b = 0xa0,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0x00,
+            .g = 0x00,
+            .b = 0xff,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0x00,
+            .g = 0xff,
+            .b = 0x00,
+            .a = 0xff,
+        },
+        Pixel{
+            .r = 0xff,
+            .g = 0x00,
+            .b = 0x00,
+            .a = 0xff,
+        },
+    });
+
     var application = ApplicationState{
         .tick = 0,
         .running = true,
         .zoom_factor = 10,
+        .active_color = Pixel{ .r = 0xff, .g = 0xff, .b = 0xff, .a = 0xff },
         .surface = surface,
         .renderer = renderer,
         .file_data = FileData{
             .name = "test",
             .width = 3,
             .height = 3,
-            .pixels = &[_]Pixel{
-                Pixel{
-                    .r = 0xff,
-                    .g = 0x00,
-                    .b = 0x00,
-                    .a = 0xff,
-                },
-                Pixel{
-                    .r = 0x00,
-                    .g = 0xff,
-                    .b = 0x00,
-                    .a = 0xff,
-                },
-                Pixel{
-                    .r = 0x00,
-                    .g = 0x00,
-                    .b = 0xff,
-                    .a = 0xff,
-                },
-                Pixel{
-                    .r = 0xff,
-                    .g = 0xff,
-                    .b = 0xff,
-                    .a = 0xff,
-                },
-                Pixel{
-                    .r = 0x00,
-                    .g = 0x00,
-                    .b = 0x00,
-                    .a = 0xff,
-                },
-                Pixel{
-                    .r = 0xa0,
-                    .g = 0xa0,
-                    .b = 0xa0,
-                    .a = 0xff,
-                },
-                Pixel{
-                    .r = 0x00,
-                    .g = 0x00,
-                    .b = 0xff,
-                    .a = 0xff,
-                },
-                Pixel{
-                    .r = 0x00,
-                    .g = 0xff,
-                    .b = 0x00,
-                    .a = 0xff,
-                },
-                Pixel{
-                    .r = 0xff,
-                    .g = 0x00,
-                    .b = 0x00,
-                    .a = 0xff,
-                },
-            },
+            .pixels = test_pixels,
         },
     };
 
@@ -230,6 +236,12 @@ fn update(application: *ApplicationState, keyboard: [*]const u8, mouse: MouseSta
 
     if (keyboard[c.SDL_SCANCODE_ESCAPE] == 1 or keyboard[c.SDL_SCANCODE_Q] == 1) {
         application.running = false;
+    }
+
+    if (mouse.left_down) {
+        if (application.active_pixel) |*active_pixel| {
+            application.active_pixel.?.* = application.active_color;
+        }
     }
 }
 
