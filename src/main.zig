@@ -76,6 +76,58 @@ const ApplicationState = struct {
                 _ = c.SDL_RenderFillRect(self.renderer, &pixel_rect);
             }
         }
+
+        self.renderSelectedColors();
+    }
+
+    fn renderSelectedColors(self: ApplicationState) void {
+        const color_box_height: u32 = 10;
+        const color_box_width: c_int = 20;
+        const bottom_left_y = application_height - color_box_height - 1;
+        const primary_color_rect = c.SDL_Rect{
+            .x = 0,
+            .y = bottom_left_y,
+            .w = color_box_width,
+            .h = color_box_height,
+        };
+        const inner_primary_color_rect = c.SDL_Rect{
+            .x = primary_color_rect.x + 2,
+            .y = primary_color_rect.y + 2,
+            .w = primary_color_rect.w - 4,
+            .h = primary_color_rect.h - 4,
+        };
+        const secondary_color_rect = c.SDL_Rect{
+            .x = color_box_width + 5,
+            .y = bottom_left_y,
+            .w = color_box_width,
+            .h = color_box_height,
+        };
+        const inner_secondary_color_rect = c.SDL_Rect{
+            .x = secondary_color_rect.x + 2,
+            .y = secondary_color_rect.y + 2,
+            .w = secondary_color_rect.w - 4,
+            .h = secondary_color_rect.h - 4,
+        };
+
+        _ = c.SDL_SetRenderDrawColor(self.renderer, 0x00, 0x00, 0x00, 0x00);
+        _ = c.SDL_RenderDrawRect(self.renderer, &primary_color_rect);
+        _ = c.SDL_RenderDrawRect(self.renderer, &secondary_color_rect);
+        _ = c.SDL_SetRenderDrawColor(
+            self.renderer,
+            self.primary_color.r,
+            self.primary_color.g,
+            self.primary_color.b,
+            self.primary_color.a,
+        );
+        _ = c.SDL_RenderFillRect(self.renderer, &inner_primary_color_rect);
+        _ = c.SDL_SetRenderDrawColor(
+            self.renderer,
+            self.secondary_color.r,
+            self.secondary_color.g,
+            self.secondary_color.b,
+            self.secondary_color.a,
+        );
+        _ = c.SDL_RenderFillRect(self.renderer, &inner_secondary_color_rect);
     }
 };
 
