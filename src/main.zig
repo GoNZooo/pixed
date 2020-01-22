@@ -316,8 +316,13 @@ pub fn main() anyerror!void {
         end_tick = c.SDL_GetTicks();
         _ = try fmt.bufPrint(
             title,
-            "pixed | Loop time: {} ms, Pixel: {}\x00",
-            .{ end_tick - start_tick, application.active_pixel },
+            "pixed | Loop time: {} ms, Active Pixel: {}, Primary: {}, Secondary: {}\x00",
+            .{
+                end_tick - start_tick,
+                application.active_pixel,
+                application.primary_color,
+                application.secondary_color,
+            },
         );
         c.SDL_SetWindowTitle(window, title.ptr);
     }
