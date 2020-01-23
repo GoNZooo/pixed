@@ -17,6 +17,10 @@ const ApplicationState = struct {
     secondary_color: Pixel,
     surface: *c.SDL_Surface,
     renderer: *c.SDL_Renderer,
+    info_font: *c.TTF_Font,
+    selected_colors_texture: *c.SDL_Texture,
+    selected_colors_width: c_int,
+    selected_colors_height: c_int,
 
     pub fn handleEvent(self: *ApplicationState, event: c.SDL_Event) void {
         switch (event.type) {
@@ -74,11 +78,17 @@ const ApplicationState = struct {
     }
 
     fn renderSelectedColors(self: ApplicationState) void {
-        const color_box_height: u32 = 10;
-        const color_box_width: c_int = 20;
+        const color_box_height: u32 = 20;
+        const color_box_width: c_int = 40;
         const bottom_left_y = application_height - color_box_height - 1;
+        const text_rect = c.SDL_Rect{
+            .x = 2,
+            .y = bottom_left_y,
+            .h = self.selected_colors_height,
+            .w = self.selected_colors_width,
+        };
         const primary_color_rect = c.SDL_Rect{
-            .x = 0,
+            .x = text_rect.w + 2,
             .y = bottom_left_y,
             .w = color_box_width,
             .h = color_box_height,
@@ -90,7 +100,7 @@ const ApplicationState = struct {
             .h = primary_color_rect.h - 4,
         };
         const secondary_color_rect = c.SDL_Rect{
-            .x = color_box_width + 5,
+            .x = text_rect.w + 2 + color_box_width + 5,
             .y = bottom_left_y,
             .w = color_box_width,
             .h = color_box_height,
@@ -103,6 +113,7 @@ const ApplicationState = struct {
         };
 
         _ = c.SDL_SetRenderDrawColor(self.renderer, 0x00, 0x00, 0x00, 0x00);
+        _ = c.SDL_RenderCopy(self.renderer, self.selected_colors_texture, null, &text_rect);
         _ = c.SDL_RenderDrawRect(self.renderer, &primary_color_rect);
         _ = c.SDL_RenderDrawRect(self.renderer, &secondary_color_rect);
         _ = c.SDL_SetRenderDrawColor(
@@ -273,6 +284,33 @@ pub fn main() anyerror!void {
         },
     });
 
+    if (c.TTF_Init() == -1) {
+        @panic("Unable to initialize TTF library\n");
+    }
+
+    const info_font_result = c.TTF_OpenFont("./resources/fonts/TerminusTTFWindows-4.47.0.ttf", 18);
+    if (info_font_result == null) {
+        const error_string: [*:0]const u8 = c.TTF_GetError();
+        debug.warn("Font error: {s}\n", .{error_string});
+        c.exit(1);
+    }
+
+    const selected_colors_text_surface = c.TTF_RenderText_Solid(
+        info_font_result.?,
+        "Colors:",
+        c.SDL_Color{ .r = 0x00, .g = 0x00, .b = 0x00, .a = 0xff },
+    );
+
+    const selected_colors_texture = c.SDL_CreateTextureFromSurface(
+        renderer,
+        selected_colors_text_surface,
+    );
+    if (selected_colors_texture == null) {
+        const error_string: [*:0]const u8 = c.SDL_GetError();
+        debug.warn("Font texture error: {s}\n", .{error_string});
+        c.exit(1);
+    }
+
     var application = ApplicationState{
         .tick = 0,
         .running = true,
@@ -281,6 +319,10 @@ pub fn main() anyerror!void {
         .secondary_color = Pixel{ .r = 0x00, .g = 0x00, .b = 0x00, .a = 0xff },
         .surface = surface,
         .renderer = renderer,
+        .info_font = info_font_result.?,
+        .selected_colors_width = selected_colors_text_surface.*.w,
+        .selected_colors_height = selected_colors_text_surface.*.h,
+        .selected_colors_texture = selected_colors_texture.?,
         .file_data = FileData{
             .name = "test",
             .width = 4,
@@ -288,6 +330,8 @@ pub fn main() anyerror!void {
             .pixels = test_pixels,
         },
     };
+
+    c.SDL_FreeSurface(selected_colors_text_surface);
 
     var keyboard: [*]const u8 = undefined;
     var event: c.SDL_Event = undefined;

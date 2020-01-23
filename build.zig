@@ -12,6 +12,7 @@ pub fn build(b: *Builder) void {
 
     exe.linkLibC();
     exe.linkSystemLibrary("SDL2");
+    exe.linkSystemLibrary("SDL2_ttf");
 
     exe.install();
 
