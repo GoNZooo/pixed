@@ -39,17 +39,6 @@ const ApplicationState = struct {
         self.active_pixel = self.getMousePixel(mouse);
     }
 
-    pub fn getMousePixel(self: ApplicationState, mouse: MouseState) ?*Pixel {
-        const x_range = @intCast(u32, mouse.x) / self.zoom_factor;
-        const y_range = @intCast(u32, mouse.y) / self.zoom_factor;
-        if (x_range >= self.file_data.width or y_range >= self.file_data.height) {
-            return null;
-        }
-        const pixel_index = y_range * self.file_data.width + x_range;
-
-        return &self.file_data.pixels[pixel_index];
-    }
-
     pub fn render(self: ApplicationState) void {
         var y: u32 = 0;
         while (y < self.file_data.height) : (y += 1) {
@@ -71,6 +60,17 @@ const ApplicationState = struct {
         }
 
         self.renderSelectedColors();
+    }
+
+    fn getMousePixel(self: ApplicationState, mouse: MouseState) ?*Pixel {
+        const x_range = @intCast(u32, mouse.x) / self.zoom_factor;
+        const y_range = @intCast(u32, mouse.y) / self.zoom_factor;
+        if (x_range >= self.file_data.width or y_range >= self.file_data.height) {
+            return null;
+        }
+        const pixel_index = y_range * self.file_data.width + x_range;
+
+        return &self.file_data.pixels[pixel_index];
     }
 
     fn renderSelectedColors(self: ApplicationState) void {

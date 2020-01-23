@@ -7,6 +7,8 @@ pub fn build(b: *Builder) void {
 
     exe.addIncludeDir("dependencies/SDL2-2.0.10/include");
     exe.addLibPath("dependencies/SDL2-2.0.10/lib/x64");
+    exe.addIncludeDir("dependencies/SDL2_ttf-2.0.15/include");
+    exe.addLibPath("dependencies/SDL2_ttf-2.0.15/lib/x64");
 
     exe.linkLibC();
     exe.linkSystemLibrary("SDL2");
