@@ -21,6 +21,9 @@ const ApplicationState = struct {
     selected_colors_texture: *c.SDL_Texture,
     selected_colors_width: c_int,
     selected_colors_height: c_int,
+    prompt: Prompt,
+    resize_x: u32,
+    resize_y: u32,
 
     pub fn handleEvent(self: *ApplicationState, event: c.SDL_Event) void {
         switch (event.type) {
@@ -64,6 +67,7 @@ const ApplicationState = struct {
         }
 
         self.renderSelectedColors();
+        self.renderPrompt();
     }
 
     fn getMousePixel(self: ApplicationState, mouse: MouseState) ?*Pixel {
@@ -75,6 +79,15 @@ const ApplicationState = struct {
         const pixel_index = y_range * self.file_data.width + x_range;
 
         return &self.file_data.pixels[pixel_index];
+    }
+
+    fn renderPrompt(self: ApplicationState) void {
+        switch (self.prompt) {
+            .Nothing => {},
+            // @TODO: create "resize" prompt
+            // for inputting new dimensions
+            .Resize => {},
+        }
     }
 
     fn renderSelectedColors(self: ApplicationState) void {
@@ -133,6 +146,11 @@ const ApplicationState = struct {
         );
         _ = c.SDL_RenderFillRect(self.renderer, &inner_secondary_color_rect);
     }
+};
+
+const Prompt = enum(u8) {
+    Nothing,
+    Resize,
 };
 
 const MouseState = struct {
@@ -323,6 +341,9 @@ pub fn main() anyerror!void {
         .selected_colors_width = selected_colors_text_surface.*.w,
         .selected_colors_height = selected_colors_text_surface.*.h,
         .selected_colors_texture = selected_colors_texture.?,
+        .prompt = .Nothing,
+        .resize_x = 0,
+        .resize_y = 0,
         .file_data = FileData{
             .name = "test",
             .width = 4,
