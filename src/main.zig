@@ -39,6 +39,8 @@ const ApplicationState = struct {
         const x_range = @intCast(u32, mouse.x) / self.zoom_factor;
         const y_range = @intCast(u32, mouse.y) / self.zoom_factor;
         if (x_range >= self.file_data.width or y_range >= self.file_data.height) {
+            self.active_pixel = null;
+
             return;
         }
         const pixel_index = y_range * self.file_data.width + x_range;
