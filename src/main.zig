@@ -6,8 +6,93 @@ const mem = std.mem;
 
 const c = @import("./c.zig");
 
-// @RESEARCH: Figure out how to IMGUI-fy the GUI for this program (with the exception of the base
-// canvas, probably).
+const UiState = struct {
+    hot_id: ?UiId,
+    active_id: ?UiId,
+    // @TODO: add cache here for surfaces & textures so that textured components don't need to
+    // create & destroy surfaces & textures every frame
+};
+
+const UiId = struct {
+    primary: PrimaryId,
+    secondary: SecondaryId = 0,
+
+    pub fn isEqual(self: UiId, id: UiId) bool {
+        return mem.eql(u8, self.primary, id.primary) and self.secondary == id.secondary;
+    }
+};
+
+const PrimaryId = []const u8;
+const SecondaryId = u32;
+
+fn button(
+    ui: *UiState,
+    renderer: *c.SDL_Renderer,
+    x: c_int,
+    y: c_int,
+    font: *c.TTF_Font,
+    text: []const u8,
+    id: UiId,
+    mouse: MouseState,
+    keyboard: KeyboardState,
+) !bool {
+    var surface = c.TTF_RenderText_Solid(
+        font,
+        text.ptr,
+        c.SDL_Color{ .r = 0x00, .g = 0x00, .b = 0x00, .a = 0xff },
+    ) orelse return error.UnableToCreateButtonSurface;
+    defer c.SDL_FreeSurface(surface);
+
+    var border_rect = c.SDL_Rect{ .x = x, .y = y, .h = undefined, .w = undefined };
+    const rect = c.SDL_Rect{ .x = x + 5, .y = y + 5, .h = surface.*.h, .w = surface.*.w };
+    border_rect.h = rect.h + 10;
+    border_rect.w = rect.w + 10;
+
+    var result: bool = false;
+    if (idsEqual(ui.active_id, id)) {
+        if (mouse.left_up) {
+            if (idsEqual(ui.hot_id, id) and mouse.isInside(border_rect)) {
+                result = true;
+            }
+            ui.active_id = null;
+        }
+    } else if (idsEqual(ui.hot_id, id)) {
+        if (mouse.left_down and mouse.isInside(border_rect)) ui.active_id = id;
+    }
+
+    if (mouse.isInside(border_rect)) {
+        _ = c.SDL_SetRenderDrawColor(renderer, 0xaa, 0xaa, 0xaa, 0xff);
+        _ = c.SDL_RenderFillRect(
+            renderer,
+            &border_rect,
+        );
+        ui.hot_id = id;
+    } else {
+        _ = c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
+        _ = c.SDL_RenderDrawRect(renderer, &border_rect);
+    }
+
+    const texture = c.SDL_CreateTextureFromSurface(
+        renderer,
+        surface,
+    );
+    defer c.SDL_DestroyTexture(texture);
+    if (texture == null) {
+        const error_string: [*:0]const u8 = c.SDL_GetError();
+        debug.warn("Font texture error: {s}\n", .{error_string});
+        return error.UnableToCreateButtonTexture;
+    }
+
+    _ = c.SDL_RenderCopy(renderer, texture, null, &rect);
+
+    return result;
+}
+
+fn idsEqual(a: ?UiId, b: ?UiId) bool {
+    if (a == null or b == null) return false;
+
+    return a.?.isEqual(b.?);
+}
 
 const ApplicationState = struct {
     tick: u64,
@@ -27,8 +112,18 @@ const ApplicationState = struct {
     prompt: Prompt,
     resize_x: u32,
     resize_y: u32,
+    ui: UiState,
+    mouse: MouseState,
+    keyboard: KeyboardState,
 
     pub fn handleEvent(self: *ApplicationState, event: c.SDL_Event) void {
+        self.mouse.left_down = false;
+        self.mouse.middle_down = false;
+        self.mouse.right_down = false;
+        self.mouse.left_up = false;
+        self.mouse.middle_up = false;
+        self.mouse.right_up = false;
+
         switch (event.type) {
             c.SDL_MOUSEWHEEL => {
                 if (event.wheel.y > 0) {
@@ -41,6 +136,34 @@ const ApplicationState = struct {
                     }
                 }
             },
+            c.SDL_MOUSEBUTTONDOWN => {
+                switch (event.button.button) {
+                    c.SDL_BUTTON_LEFT => {
+                        self.mouse.left_down = true;
+                    },
+                    c.SDL_BUTTON_MIDDLE => {
+                        self.mouse.middle_down = true;
+                    },
+                    c.SDL_BUTTON_RIGHT => {
+                        self.mouse.right_down = true;
+                    },
+                    else => {},
+                }
+            },
+            c.SDL_MOUSEBUTTONUP => {
+                switch (event.button.button) {
+                    c.SDL_BUTTON_LEFT => {
+                        self.mouse.left_up = true;
+                    },
+                    c.SDL_BUTTON_MIDDLE => {
+                        self.mouse.middle_up = true;
+                    },
+                    c.SDL_BUTTON_RIGHT => {
+                        self.mouse.right_up = true;
+                    },
+                    else => {},
+                }
+            },
             else => {},
         }
     }
@@ -49,7 +172,7 @@ const ApplicationState = struct {
         self.active_pixel = self.getMousePixel(mouse);
     }
 
-    pub fn render(self: ApplicationState) void {
+    pub fn render(self: *ApplicationState) !void {
         var y: u32 = 0;
         while (y < self.file_data.height) : (y += 1) {
             var x: u32 = 0;
@@ -71,6 +194,94 @@ const ApplicationState = struct {
 
         self.renderSelectedColors();
         self.renderPrompt();
+
+        if (try button(
+            &self.ui,
+            self.renderer,
+            300,
+            200,
+            self.info_font,
+            "hey",
+            UiId{ .primary = "test-button1" },
+            self.mouse,
+            self.keyboard,
+        )) {
+            debug.warn("button 1 was clicked\n", .{});
+        }
+        if (try button(
+            &self.ui,
+            self.renderer,
+            300,
+            250,
+            self.info_font,
+            "ho",
+            UiId{ .primary = "test-button2" },
+            self.mouse,
+            self.keyboard,
+        )) {
+            debug.warn("button 2 was clicked\n", .{});
+        }
+        if (try button(
+            &self.ui,
+            self.renderer,
+            300,
+            300,
+            self.info_font,
+            "let's go",
+            UiId{ .primary = "test-button3" },
+            self.mouse,
+            self.keyboard,
+        )) {
+            debug.warn("button 3 was clicked\n", .{});
+        }
+
+        if (try button(
+            &self.ui,
+            self.renderer,
+            300,
+            350,
+            self.info_font,
+            "hey",
+            UiId{ .primary = "test-button4" },
+            self.mouse,
+            self.keyboard,
+        )) {
+            debug.warn("button 4 was clicked\n", .{});
+        }
+        if (try button(
+            &self.ui,
+            self.renderer,
+            300,
+            400,
+            self.info_font,
+            "ho",
+            UiId{ .primary = "test-button5" },
+            self.mouse,
+            self.keyboard,
+        )) {
+            debug.warn("button 5 was clicked\n", .{});
+        }
+        if (try button(
+            &self.ui,
+            self.renderer,
+            300,
+            450,
+            self.info_font,
+            "let's go",
+            UiId{ .primary = "test-button6" },
+            self.mouse,
+            self.keyboard,
+        )) {
+            debug.warn("button 6 was clicked\n", .{});
+        }
+    }
+
+    pub fn updateMousePosition(self: *ApplicationState) void {
+        _ = c.SDL_GetMouseState(&self.mouse.x, &self.mouse.y);
+    }
+
+    pub fn updateKeyboard(self: *ApplicationState) void {
+        self.keyboard = c.SDL_GetKeyboardState(null);
     }
 
     fn getMousePixel(self: ApplicationState, mouse: MouseState) ?*Pixel {
@@ -93,7 +304,7 @@ const ApplicationState = struct {
         }
     }
 
-    fn renderSelectedColors(self: ApplicationState) void {
+    fn renderSelectedColors(self: *ApplicationState) void {
         const color_box_height: u32 = 20;
         const color_box_width: c_int = 40;
         const bottom_left_y = application_height - color_box_height - 1;
@@ -162,7 +373,18 @@ const MouseState = struct {
     left_down: bool,
     middle_down: bool,
     right_down: bool,
+    left_up: bool,
+    middle_up: bool,
+    right_up: bool,
+
+    pub fn isInside(self: MouseState, rect: c.SDL_Rect) bool {
+        // debug.warn("self.x={}\tself.y={}\n", .{ self.x, self.y });
+        return self.x < rect.x + rect.w and self.x > rect.x and
+            self.y < rect.y + rect.h and self.y > rect.y;
+    }
 };
+
+const KeyboardState = [*]const u8;
 
 const FileData = struct {
     name: []const u8,
@@ -353,14 +575,14 @@ pub fn main() anyerror!void {
             .height = 4,
             .pixels = test_pixels,
         },
+        .ui = UiState{ .hot_id = null, .active_id = null },
+        .mouse = undefined,
+        .keyboard = undefined,
     };
 
     c.SDL_FreeSurface(selected_colors_text_surface);
 
-    var keyboard: [*]const u8 = undefined;
     var event: c.SDL_Event = undefined;
-    var mouse_x: c_int = undefined;
-    var mouse_y: c_int = undefined;
     var previous_ticks = @intToFloat(f64, c.SDL_GetTicks());
     var start_tick: u32 = 0;
     var end_tick: u32 = 0;
@@ -370,10 +592,10 @@ pub fn main() anyerror!void {
         if (c.SDL_PollEvent(&event) == 1) {
             application.handleEvent(event);
         }
-        keyboard = c.SDL_GetKeyboardState(null);
-        const mouse = getMouseState();
-        update(&application, keyboard, mouse);
-        render(renderer, application);
+        application.updateMousePosition();
+        application.updateKeyboard();
+        update(&application, application.keyboard, application.mouse);
+        try render(renderer, &application);
         end_tick = c.SDL_GetTicks();
         _ = try fmt.bufPrint(
             title,
@@ -411,23 +633,13 @@ fn update(application: *ApplicationState, keyboard: [*]const u8, mouse: MouseSta
     }
 }
 
-fn render(renderer: *c.SDL_Renderer, application: ApplicationState) void {
+fn render(renderer: *c.SDL_Renderer, application: *ApplicationState) !void {
     _ = c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
     _ = c.SDL_RenderClear(renderer);
 
-    application.render();
+    try application.render();
 
     _ = c.SDL_RenderPresent(renderer);
-}
-
-fn getMouseState() MouseState {
-    var mouse: MouseState = undefined;
-    const mouse_bitmask = c.SDL_GetMouseState(&mouse.x, &mouse.y);
-    mouse.left_down = (mouse_bitmask & 0b1) == 1;
-    mouse.middle_down = ((mouse_bitmask & 0b10) >> 1) == 1;
-    mouse.right_down = ((mouse_bitmask & 0b100) >> 2) == 1;
-
-    return mouse;
 }
 
 const application_width: u32 = 1280;
