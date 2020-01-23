@@ -6,6 +6,9 @@ const mem = std.mem;
 
 const c = @import("./c.zig");
 
+// @RESEARCH: Figure out how to IMGUI-fy the GUI for this program (with the exception of the base
+// canvas, probably).
+
 const ApplicationState = struct {
     tick: u64,
     running: bool,
