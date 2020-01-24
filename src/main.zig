@@ -4,13 +4,53 @@ const heap = std.heap;
 const fmt = std.fmt;
 const mem = std.mem;
 
+const StringMap = std.hash_map.StringHashMap;
+
 const c = @import("./c.zig");
+
+const TextureSurface = struct {
+    surface: *c.SDL_Surface,
+    texture: *c.SDL_Texture,
+};
 
 const UiState = struct {
     hot_id: ?UiId,
     active_id: ?UiId,
-    // @TODO: add cache here for surfaces & textures so that textured components don't need to
-    // create & destroy surfaces & textures every frame
+    texture_surface_cache: StringMap(TextureSurface),
+
+    /// Returns a cached version of the surface & texture for a given combination of `font` &
+    /// `text`. Returning a cached version keeps will not only mean that identical buttons share
+    /// information but also that we don't create & destroy resources on every render.
+    pub fn getOrCreateTextureSurface(
+        self: *UiState,
+        renderer: *c.SDL_Renderer,
+        font: *c.TTF_Font,
+        text: []const u8,
+    ) !TextureSurface {
+        var key_buffer: [64]u8 = undefined;
+        const key = try fmt.bufPrint(&key_buffer, "{}{}", .{ @ptrToInt(font), text });
+        const get_result = self.texture_surface_cache.get(key);
+
+        if (get_result) |result| {
+            return result.value;
+        } else {
+            var texture_surface: TextureSurface = undefined;
+            texture_surface.surface = c.TTF_RenderText_Solid(
+                font,
+                text.ptr,
+                c.SDL_Color{ .r = 0x00, .g = 0x00, .b = 0x00, .a = 0xff },
+            ) orelse return error.UnableToCreateButtonSurface;
+
+            texture_surface.texture = c.SDL_CreateTextureFromSurface(
+                renderer,
+                texture_surface.surface,
+            ) orelse return error.UnableToCreateTexture;
+
+            _ = try self.texture_surface_cache.put(key, texture_surface);
+
+            return texture_surface;
+        }
+    }
 };
 
 const UiId = struct {
@@ -36,13 +76,8 @@ fn button(
     mouse: MouseState,
     keyboard: KeyboardState,
 ) !bool {
-    var surface = c.TTF_RenderText_Solid(
-        font,
-        text.ptr,
-        c.SDL_Color{ .r = 0x00, .g = 0x00, .b = 0x00, .a = 0xff },
-    ) orelse return error.UnableToCreateButtonSurface;
-    defer c.SDL_FreeSurface(surface);
-
+    const texture_surface = try ui.getOrCreateTextureSurface(renderer, font, text);
+    const surface = texture_surface.surface;
     var border_rect = c.SDL_Rect{ .x = x, .y = y, .h = undefined, .w = undefined };
     const rect = c.SDL_Rect{ .x = x + 5, .y = y + 5, .h = surface.*.h, .w = surface.*.w };
     border_rect.h = rect.h + 10;
@@ -71,19 +106,7 @@ fn button(
         _ = c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
         _ = c.SDL_RenderDrawRect(renderer, &border_rect);
     }
-
-    const texture = c.SDL_CreateTextureFromSurface(
-        renderer,
-        surface,
-    );
-    defer c.SDL_DestroyTexture(texture);
-    if (texture == null) {
-        const error_string: [*:0]const u8 = c.SDL_GetError();
-        debug.warn("Font texture error: {s}\n", .{error_string});
-        return error.UnableToCreateButtonTexture;
-    }
-
-    _ = c.SDL_RenderCopy(renderer, texture, null, &rect);
+    _ = c.SDL_RenderCopy(renderer, texture_surface.texture, null, &rect);
 
     return result;
 }
@@ -575,7 +598,11 @@ pub fn main() anyerror!void {
             .height = 4,
             .pixels = test_pixels,
         },
-        .ui = UiState{ .hot_id = null, .active_id = null },
+        .ui = UiState{
+            .hot_id = null,
+            .active_id = null,
+            .texture_surface_cache = StringMap(TextureSurface).init(heap.page_allocator),
+        },
         .mouse = undefined,
         .keyboard = undefined,
     };
