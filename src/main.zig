@@ -138,6 +138,7 @@ const ApplicationState = struct {
     ui: UiState,
     mouse: MouseState,
     keyboard: KeyboardState,
+    display_button_1: bool = true,
 
     pub fn handleEvent(self: *ApplicationState, event: c.SDL_Event) void {
         self.mouse.left_down = false;
@@ -229,73 +230,33 @@ const ApplicationState = struct {
             self.mouse,
             self.keyboard,
         )) {
-            debug.warn("button 1 was clicked\n", .{});
+            debug.warn("Hey!\n", .{});
         }
         if (try button(
             &self.ui,
             self.renderer,
             300,
-            250,
+            230,
             self.info_font,
             "ho",
             UiId{ .primary = "test-button2" },
             self.mouse,
             self.keyboard,
         )) {
-            debug.warn("button 2 was clicked\n", .{});
+            debug.warn("Ho!\n", .{});
         }
         if (try button(
             &self.ui,
             self.renderer,
             300,
-            300,
+            260,
             self.info_font,
             "let's go",
             UiId{ .primary = "test-button3" },
             self.mouse,
             self.keyboard,
         )) {
-            debug.warn("button 3 was clicked\n", .{});
-        }
-
-        if (try button(
-            &self.ui,
-            self.renderer,
-            300,
-            350,
-            self.info_font,
-            "hey",
-            UiId{ .primary = "test-button4" },
-            self.mouse,
-            self.keyboard,
-        )) {
-            debug.warn("button 4 was clicked\n", .{});
-        }
-        if (try button(
-            &self.ui,
-            self.renderer,
-            300,
-            400,
-            self.info_font,
-            "ho",
-            UiId{ .primary = "test-button5" },
-            self.mouse,
-            self.keyboard,
-        )) {
-            debug.warn("button 5 was clicked\n", .{});
-        }
-        if (try button(
-            &self.ui,
-            self.renderer,
-            300,
-            450,
-            self.info_font,
-            "let's go",
-            UiId{ .primary = "test-button6" },
-            self.mouse,
-            self.keyboard,
-        )) {
-            debug.warn("button 6 was clicked\n", .{});
+            debug.warn("Let's go!\n", .{});
         }
     }
 
