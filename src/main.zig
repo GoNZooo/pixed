@@ -380,7 +380,7 @@ const FileData = struct {
     // @TODO: add `loadFromFile`
 };
 
-const Pixel = struct {
+const Pixel = extern struct {
     r: u8,
     g: u8,
     b: u8,
