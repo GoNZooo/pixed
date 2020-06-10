@@ -541,7 +541,7 @@ pub fn main() anyerror!void {
     var application = ApplicationState{
         .tick = 0,
         .running = true,
-        .zoom_factor = 10,
+        .zoom_factor = 5,
         .primary_color = Pixel{ .r = 0xff, .g = 0xff, .b = 0xff, .a = 0xff },
         .secondary_color = Pixel{ .r = 0x00, .g = 0x00, .b = 0x00, .a = 0xff },
         .surface = surface,
